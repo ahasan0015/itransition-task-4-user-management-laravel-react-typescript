@@ -1,78 +1,140 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import api from "../../../src/config/axios";
+
+interface User {
+  id: number;
+  name: string;
+  title: string;
+  email: string;
+  status: string;
+  last_seen: string;
+}
 
 export default function ManageUsers() {
+  const [users, setUsers] = useState<User[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // স্ট্যাটিক ইউজার ডেটা
-  const users = [
-    { id: 1, name: "Clare, Alex", title: "N/A", email: "a_clare42@gmail.com", status: "Active", last_seen: "5 minutes ago" },
-    { id: 2, name: "Morrison, Jim", title: "CFO, Meta Platforms, Inc.", email: "dmtimer9@dealyaari.com", status: "Active", last_seen: "less than a minute ago" },
-    { id: 3, name: "Simone, Nina", title: "Regional Manager, Amazon.com, Inc.", email: "marishabelin@giftcode-ao.com", status: "Blocked", last_seen: "3 weeks ago" },
-    { id: 4, name: "Zappa, Frank", title: "Architect, Meta Platforms, Inc.", email: "zappa_f@citybank.com", status: "Unverified", last_seen: "less than a minute ago" },
-  ];
+  useEffect(() => {
+    api
+      .get("/users")
+      .then((res) => {
+        setUsers(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching data:", err);
+        setLoading(false);
+      });
+  }, []);
 
   const toggleSelect = (id: number) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
   };
 
   const toggleSelectAll = () => {
-    setSelectedIds(selectedIds.length === users.length ? [] : users.map(u => u.id));
+    setSelectedIds(
+      selectedIds.length === users.length ? [] : users.map((u) => u.id),
+    );
   };
 
   return (
-    <div className="container mt-5" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
-        <div>
-          <h2 className="fw-bold text-dark mb-1">User Management</h2>
-          <p className="text-muted small mb-0">Overview of all registered users in system applications</p>
-        </div>
-        <Link to="/login" className="btn btn-outline-danger btn-sm">Logout 🚪</Link>
+    <div className="container-fluid mt-4 px-3">
+      {/* Header Section */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h3 className="fw-bold h5">User Management</h3>
+        <Link to="/login" className="btn btn-sm btn-outline-danger">
+          Logout
+        </Link>
       </div>
 
-      {/* Table Container */}
-      <div className="card border rounded shadow-sm overflow-hidden">
+      <div className="card border shadow-sm">
         {/* Toolbar */}
-        <div className="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center gap-3">
-          <div className="d-flex align-items-center gap-2">
-            <button className="btn btn-outline-primary btn-sm fw-medium px-3">🔒 Block</button>
-            <button className="btn btn-outline-secondary btn-sm" style={{ width: '34px' }}>🔓</button>
-            <button className="btn btn-outline-danger btn-sm" style={{ width: '34px' }}>🗑️</button>
-            <button className="btn btn-outline-warning btn-sm" style={{ width: '34px' }}>🧹</button>
+        <div className="card-header bg-white p-3 d-flex flex-wrap gap-2 align-items-center">
+          <div className="btn-group">
+            <button className="btn btn-sm btn-outline-primary" title="Block">
+              <i className="bi bi-lock-fill"></i> Block
+            </button>
+            <button className="btn btn-sm btn-outline-secondary" title="Unlock">
+              <i className="bi bi-unlock-fill"></i>
+            </button>
+            <button className="btn btn-sm btn-outline-danger" title="Delete">
+              <i className="bi bi-trash-fill"></i>
+            </button>
+            <button className="btn btn-sm btn-outline-warning" title="Sweep">
+              <i className="bi bi-brush"></i>
+            </button>
           </div>
-          <input type="text" className="form-control form-control-sm" style={{ maxWidth: '240px' }} placeholder="Filter" />
+          <input
+            type="text"
+            className="form-control form-control-sm ms-auto"
+            style={{ maxWidth: "150px" }}
+            placeholder="Filter"
+          />
         </div>
 
-        {/* Table */}
-        <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0 text-nowrap">
-            <thead className="table-light text-secondary">
-              <tr style={{ fontSize: '14px' }}>
-                <th className="py-3 px-4" style={{ width: '40px' }}>
-                  <input type="checkbox" className="form-check-input" onChange={toggleSelectAll} checked={selectedIds.length === users.length && users.length > 0} />
+        {/* Responsive Table Wrapper with both scrollbars */}
+        <div
+          className="table-responsive"
+          style={{ maxHeight: "500px", overflowY: "auto", overflowX: "auto" }}
+        >
+          <table className="table table-hover mb-0 align-middle">
+            <thead className="table-light sticky-top" style={{ zIndex: 1 }}>
+              <tr>
+                <th style={{ width: "40px" }} className="px-3">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    onChange={toggleSelectAll}
+                    checked={
+                      selectedIds.length === users.length && users.length > 0
+                    }
+                  />
                 </th>
-                <th className="py-3">Name</th>
-                <th className="py-3">Email</th>
-                <th className="py-3">Status</th>
-                <th className="py-3 px-4">Last seen</th>
+                <th style={{ minWidth: "150px" }}>Name</th>
+                <th style={{ minWidth: "200px" }}>Email</th>
+                <th style={{ minWidth: "100px" }}>Status</th>
+                <th style={{ minWidth: "150px" }}>Last seen</th>
               </tr>
             </thead>
-            <tbody style={{ fontSize: '14px' }}>
-              {users.map((user) => (
-                <tr key={user.id} className={selectedIds.includes(user.id) ? 'table-primary' : ''}>
-                  <td className="py-3 px-4">
-                    <input type="checkbox" className="form-check-input" checked={selectedIds.includes(user.id)} onChange={() => toggleSelect(user.id)} />
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-4">
+                    Loading...
                   </td>
-                  <td className="py-3">
-                    <div className="fw-semibold text-dark">{user.name}</div>
-                    <div className="text-muted small">{user.title}</div>
-                  </td>
-                  <td className="py-3 text-secondary">{user.email}</td>
-                  <td className="py-3 text-dark fw-medium">{user.status}</td>
-                  <td className="py-3 px-4 text-secondary">{user.last_seen}</td>
                 </tr>
-              ))}
+              ) : (
+                users.map((user) => (
+                  <tr
+                    key={user.id}
+                    className={
+                      selectedIds.includes(user.id) ? "table-primary" : ""
+                    }
+                  >
+                    <td className="px-3">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        checked={selectedIds.includes(user.id)}
+                        onChange={() => toggleSelect(user.id)}
+                      />
+                    </td>
+                    <td>
+                      <div className="fw-bold">{user.name}</div>
+                      <small className="text-muted">
+                        {user.title || "N/A"}
+                      </small>
+                    </td>
+                    <td>{user.email}</td>
+                    <td>{user.status}</td>
+                    <td>{user.last_seen}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

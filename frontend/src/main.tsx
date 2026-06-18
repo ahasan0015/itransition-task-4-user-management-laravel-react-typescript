@@ -21,7 +21,7 @@ const AppRoute = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <Navigate to="/login" replace /> },
-      { path: '/manage-users', element: <ManageUsers /> }
+      { path: '/users', element: <ManageUsers /> }
     ]
   },
   {path: '/login',element: <Login />},
