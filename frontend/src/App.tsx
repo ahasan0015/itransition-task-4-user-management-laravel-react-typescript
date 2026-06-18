@@ -1,12 +1,18 @@
 
 // import './App.css'
 
+import { Outlet } from "react-router-dom"
+
 function App() {
   
 
   return (
     <>
-      <h1>Vite + React</h1>
+    <div className="app-container min-vh-100 bg-light">
+      <main className="p-4">
+        <Outlet />
+      </main>
+    </div>
     </>
   )
 }
