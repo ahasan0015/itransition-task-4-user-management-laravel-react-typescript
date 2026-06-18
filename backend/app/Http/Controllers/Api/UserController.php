@@ -40,6 +40,7 @@ class UserController extends Controller
             ]);
 
             return response()->json(['message' => 'Registration successful! You can login now.'], 201);
+
         } catch (QueryException $e) {
             /**
              * FIRST REQUIREMENT & COMPLIANCE:
@@ -83,12 +84,12 @@ class UserController extends Controller
     }
 
     /**
-     * User List Fetch
-     */
-    public function index()
-    {
-
-        $users = User::select('id', 'name', 'email', 'status', 'last_login_time as last_seen')->get();
-        return response()->json($users);
-    }
+ * User List Fetch
+ */
+public function index()
+{
+    
+    $users = User::select('id', 'name', 'email', 'status', 'last_login_time as last_seen')->get();
+    return response()->json($users);
+}
 }
