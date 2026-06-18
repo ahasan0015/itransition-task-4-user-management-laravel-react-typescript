@@ -12,6 +12,7 @@ import App from './App.tsx'
 import Login from './components/pages/Login.tsx';
 import Register from './components/pages/Register.tsx';
 import NotFound from './components/pages/NotFound.tsx';
+import ManageUsers from './components/pages/ManageUser.tsx';
 
 // Router Configuration
 const AppRoute = createBrowserRouter([
@@ -19,7 +20,8 @@ const AppRoute = createBrowserRouter([
     path: "/",
     element: <App />,
     children: [
-      { index: true, element: <Navigate to="/login" replace /> }
+      { index: true, element: <Navigate to="/login" replace /> },
+      { path: '/manage-users', element: <ManageUsers /> }
     ]
   },
   {path: '/login',element: <Login />},
