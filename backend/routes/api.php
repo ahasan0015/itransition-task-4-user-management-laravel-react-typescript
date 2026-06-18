@@ -11,3 +11,8 @@ use Illuminate\Support\Facades\Route;
 // Global public endpoints for auth pipelines
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/users', [UserController::class, 'index']);
+    
+});

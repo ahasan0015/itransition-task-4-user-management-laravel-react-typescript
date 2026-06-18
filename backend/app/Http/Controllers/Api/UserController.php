@@ -20,7 +20,7 @@ class UserController extends Controller
     }
     /**
      * Register User
-     * IMPORTANT: লারাভেল কোডে কোনো ডুপ্লিকেট ইমেইল চেক হবে না। সরাসরি ট্রাই-ক্যাচ দিয়ে ডেটাবেজে পুশ হবে।
+     * 
      */
     public function register(Request $request)
     {
@@ -40,7 +40,6 @@ class UserController extends Controller
             ]);
 
             return response()->json(['message' => 'Registration successful! You can login now.'], 201);
-
         } catch (QueryException $e) {
             /**
              * FIRST REQUIREMENT & COMPLIANCE:
@@ -81,5 +80,15 @@ class UserController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json(['token' => $token, 'user' => $user]);
+    }
+
+    /**
+     * User List Fetch
+     */
+    public function index()
+    {
+
+        $users = User::select('id', 'name', 'email', 'status', 'last_login_time as last_seen')->get();
+        return response()->json($users);
     }
 }
