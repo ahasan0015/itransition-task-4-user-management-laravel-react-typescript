@@ -107,7 +107,8 @@ class UserController extends Controller
         $request->validate([
             'ids' => 'required|array',
             'ids.*' => 'integer|exists:users,id',
-            'action' => 'required|in:block,unblock,delete'
+            // 'action' => 'required|in:block,unblock,delete'
+            'action' => 'required|in:block,unblock,delete,delete_unverified'
         ]);
 
         $action = $request->action;
@@ -122,6 +123,9 @@ class UserController extends Controller
                 break;
             case 'delete':
                 User::whereIn('id', $ids)->delete();
+                break;
+            case 'delete_unverified':
+                User::whereIn('id', $ids)->where(['status' => 'unverified'])->delete();
                 break;
         }
 
