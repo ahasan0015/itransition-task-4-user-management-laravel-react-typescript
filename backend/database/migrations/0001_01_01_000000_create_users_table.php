@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             // NOTE: Default inline unique() removed to avoid conflict with the explicit index at the bottom.
-            $table->string('email'); 
+            $table->string('email')->unique();
             $table->string('password');
             // NOTE: Application workflow statuses (unverified, active, blocked)
             $table->string('status')->default('unverified'); 
