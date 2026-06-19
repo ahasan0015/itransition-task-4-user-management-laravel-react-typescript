@@ -11,21 +11,29 @@ class CheckUserStatus
 {
     /**
      * Handle an incoming request.
-     * REQUIREMENT: Ensure only active users can perform actions.
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // চেক করুন ইউজার লগইন করা আছে কি না
+        // Check if the user is authenticated first
         if (Auth::check()) {
             $user = Auth::user();
 
-            // REQUIREMENT: Check if user is blocked
+            // check if the user's status is 'blocked'
+            // NOTE: if the status is 'blocked', we will log out the user and return a JSON response with a message
             if ($user->status === 'blocked') {
-                // ইউজারকে লগআউট করিয়ে দিন যাতে টোকেন বাতিল হয়ে যায়
+                
+                // totally log out the user by deleting all their tokens 
                 $user->tokens()->delete(); 
                 
+                // User Logout and Session Invalidateion
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                // ৩. JSON response with message for user
+                // IMPORTANT: status code 403 means "Forbidden" which indicates that the server understands the request but refuses to authorize it. This is appropriate for blocked users.
                 return response()->json([
-                    'error' => 'Your account is blocked by the administrator.'
+                    'message' => 'Your account has been blocked by the administrator.'
                 ], 403);
             }
         }

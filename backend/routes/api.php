@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'check.status'])->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users/bulk-action', [UserController::class, 'bulkAction']);
 });
