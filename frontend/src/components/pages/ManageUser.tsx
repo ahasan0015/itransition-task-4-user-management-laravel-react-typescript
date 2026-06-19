@@ -20,7 +20,12 @@ export default function ManageUsers() {
     api
       .get("/users")
       .then((res) => {
-        setUsers(res.data);
+        // Map 'last_login_time' to 'last_seen' so the UI displays it correctly
+        const formattedUsers = res.data.map((user: any) => ({
+          ...user,
+          last_seen: user.last_login_time, // Assigning the DB value to the interface field
+        }));
+        setUsers(formattedUsers);
         setLoading(false);
       })
       .catch((err) => {
