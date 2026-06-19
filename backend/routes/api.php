@@ -14,5 +14,5 @@ Route::post('/login', [UserController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
-    
+    Route::post('/users/bulk-action', [UserController::class, 'bulkAction']);
 });

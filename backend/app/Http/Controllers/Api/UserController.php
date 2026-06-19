@@ -98,4 +98,33 @@ class UserController extends Controller
 
         return response()->json($users);
     }
+
+    /**
+     * Bulk Action (Block, Unblock, Delete)
+     */
+    public function bulkAction(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:users,id',
+            'action' => 'required|in:block,unblock,delete'
+        ]);
+
+        $action = $request->action;
+        $ids = $request->ids;
+
+        switch ($action) {
+            case 'block':
+                User::whereIn('id', $ids)->update(['status' => 'blocked']);
+                break;
+            case 'unblock':
+                User::whereIn('id', $ids)->update(['status' => 'active']);
+                break;
+            case 'delete':
+                User::whereIn('id', $ids)->delete();
+                break;
+        }
+
+        return response()->json(['message' => 'Bulk action performed successfully.']);
+    }
 }
