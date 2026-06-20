@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\UserVerificationMail;
 
 class UserController extends Controller
 {
@@ -39,6 +41,8 @@ class UserController extends Controller
                 'verification_token' => $this->getUniqIdValue()
             ]);
 
+            Mail::to($user->email)->queue(new UserVerificationMail($user));
+            
             return response()->json(['message' => 'Registration successful! You can login now.'], 201);
         } catch (QueryException $e) {
             /**
@@ -50,7 +54,19 @@ class UserController extends Controller
             }
             return response()->json(['error' => 'Database layer failure.'], 500);
         }
+       
+        }
+
+        //verification method
+        public function verify($token)
+    {
+        $user = User::where('verification_token', $token)->first();
+            if ($user) {
+        $user->update(['status' => 'active', 'verification_token' => null]);
+        return "Account activated successfully!";
     }
+    return "Invalid token!";
+}
 
     /**
      * Login User

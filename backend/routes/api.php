@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 // Global public endpoints for auth pipelines
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
+Route::get('/verify/{token}', [UserController::class, 'verify'])->name('verification.verify');
 
 Route::middleware(['auth:sanctum', 'check.status'])->group(function () {
     Route::get('/users', [UserController::class, 'index']);
