@@ -26,39 +26,36 @@ class UserController extends Controller
      */
     public function register(Request $request)
     {
+    // IMPORTANT: 'confirmed' rule  password_confirmation 
         $request->validate([
             'name' => 'required|string',
             'email' => 'required|email',
-            'password' => 'required|string',
+            'password' => 'required|string|confirmed', // password_confirmation 
+            'terms' => 'accepted', 
         ]);
 
-        try {
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'status' => 'unverified',
-                'verification_token' => $this->getUniqIdValue()
-            ]);
+    try {
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'status' => 'unverified',
+            'verification_token' => $this->getUniqIdValue()
+        ]);
 
-            Mail::to($user->email)->queue(new UserVerificationMail($user));
-            
-            return response()->json(['message' => 'Registration successful! You can login now.'], 201);
+        Mail::to($user->email)->queue(new UserVerificationMail($user));
+
+        return response()->json(['message' => 'Registration successful!'], 201);
         } catch (QueryException $e) {
-            /**
-             * FIRST REQUIREMENT & COMPLIANCE:
-             * IMPORTANT: Catching the database level unique index violation exception (1062 for MySQL)
-             */
-            if ($e->getCode() == '23505' || $e->getCode() == '1062') {
-                return response()->json(['error' => 'This email already exists in our storage level unique index!'], 400);
-            }
-            return response()->json(['error' => 'Database layer failure.'], 500);
+        if ($e->getCode() == '23505' || $e->getCode() == '1062') {
+            return response()->json(['error' => 'Email already exists!'], 400);
         }
-       
+        return response()->json(['error' => 'Database error.'], 500);
         }
+    }
 
         //verification method
-        public function verify($token)
+    public function verify($token)
     {
         $user = User::where('verification_token', $token)->first();
             if ($user) {
@@ -99,52 +96,75 @@ class UserController extends Controller
     }
 
     /**
+ * Logout User
+ */
+public function logout(Request $request)
+{
+    // token remove
+    $request->user()->currentAccessToken()->delete();
+
+    return response()->json(['message' => 'Logged out successfully!']);
+}
+
+    /**
      * User List Fetch
      */
-    public function index()
-    {
-        /**
-         * Requirement #3: Data should be sorted (e.g., by the last login time).
-         * Requirement #5: Always fetch fresh data. 
-         * NOTE: Using 'desc' ensures the most active users appear first.
-         */
-        $users = User::select('id', 'name', 'email', 'status', 'last_login_time')
-            ->orderBy('last_login_time', 'desc')
-            ->get();
+public function index(Request $request)
+{
+    // search query parameter
+    $search = $request->query('search');
 
-        return response()->json($users);
-    }
+    // 1. select only required fields 2. search by name or email 3. sort by last login time desc 4. paginate results
+   $users = User::select('id', 'name', 'email', 'status', 'last_login_time')
+    ->when($search, function ($query, $search) {
+        return $query->where('name', 'LIKE', "%{$search}%")
+                     ->orWhere('email', 'LIKE', "%{$search}%")
+                     ->orWhere('status', 'LIKE', "%{$search}%");
+    })
+    ->orderBy('last_login_time', 'desc')
+    ->paginate(10);
+    return response()->json([
+        'users' => [
+            'data' => $users->items(),
+            'current_page' => $users->currentPage(),
+            'last_page' => $users->lastPage(),
+        ]
+    ]);
+}
 
     /**
      * Bulk Action (Block, Unblock, Delete)
      */
     public function bulkAction(Request $request)
-    {
-        $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'integer|exists:users,id',
-            // 'action' => 'required|in:block,unblock,delete'
-            'action' => 'required|in:block,unblock,delete,delete_unverified'
-        ]);
+{
+    // IMPORTANT: 'delete_unverified'  'ids' sperate handling for unverified users deletion
+    $request->validate([
+        'action' => 'required|in:block,unblock,delete,delete_unverified'
+    ]);
 
-        $action = $request->action;
-        $ids = $request->ids;
+    $action = $request->action;
+    $ids = $request->ids ?? [];
 
-        switch ($action) {
-            case 'block':
-                User::whereIn('id', $ids)->update(['status' => 'blocked']);
-                break;
-            case 'unblock':
-                User::whereIn('id', $ids)->update(['status' => 'active']);
-                break;
-            case 'delete':
-                User::whereIn('id', $ids)->delete();
-                break;
-            case 'delete_unverified':
-                User::whereIn('id', $ids)->where(['status' => 'unverified'])->delete();
-                break;
-        }
-
-        return response()->json(['message' => 'Bulk action performed successfully.']);
+    switch ($action) {
+        case 'block':
+            User::whereIn('id', $ids)->update(['status' => 'blocked']);
+            break;
+        case 'unblock':
+            User::whereIn('id', $ids)->update(['status' => 'active']);
+            break;
+        case 'delete':
+            User::whereIn('id', $ids)->delete();
+            break;
+        case 'delete_unverified':
+            // NOTE: if IDs are provided, only those will be deleted; otherwise, all unverified users will be deleted
+            $query = User::where('status', 'unverified');
+            if (!empty($ids)) {
+                $query->whereIn('id', $ids);
+            }
+            $query->delete();
+            break;
     }
+
+    return response()->json(['message' => 'Bulk action performed successfully.']);
+}
 }

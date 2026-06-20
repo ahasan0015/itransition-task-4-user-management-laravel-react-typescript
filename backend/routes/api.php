@@ -16,4 +16,5 @@ Route::get('/verify/{token}', [UserController::class, 'verify'])->name('verifica
 Route::middleware(['auth:sanctum', 'check.status'])->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users/bulk-action', [UserController::class, 'bulkAction']);
+    Route::post('/logout', [UserController::class, 'logout']);
 });
