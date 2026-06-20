@@ -162,7 +162,7 @@ export default function ManageUsers() {
             style={{ maxWidth: "180px" }}
             placeholder="Search users..."
             onChange={(e) => {
-              /* এখানে সার্চ লজিক যোগ করুন */
+              /* search logic to add */
             }}
           />
         </div>
@@ -180,7 +180,7 @@ export default function ManageUsers() {
                     type="checkbox"
                     className="form-check-input"
                     onChange={toggleSelectAll}
-                    // সিলেকশন লজিক ফিক্স
+                    // select all checkbox logic
                     checked={
                       users.length > 0 && selectedIds.length === users.length
                     }
@@ -230,7 +230,7 @@ export default function ManageUsers() {
                     </td>
                     <td>{user.email}</td>
                     <td>
-                      {/* স্ট্যাটাস ব্যাজ যোগ করুন */}
+                      {/* Status Badge */}
                       <span
                         className={`badge ${user.status === "active" ? "bg-success" : "bg-warning"}`}
                       >
