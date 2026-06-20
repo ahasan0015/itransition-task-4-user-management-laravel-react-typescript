@@ -1,23 +1,45 @@
 import { useState } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../config/axios"; 
+import Swal from 'sweetalert2'; // Toast 
 
 export default function Register() {
-    const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+    const [formData, setFormData] = useState({ 
+        name: '', email: '', password: '', password_confirmation: '', terms: false 
+    });
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
+    // Toast Configuration
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+    });
+
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
+        
+        if (formData.password !== formData.password_confirmation) {
+            Toast.fire({ icon: 'error', title: 'Passwords do not match!' });
+            return;
+        }
+        if (!formData.terms) {
+            Toast.fire({ icon: 'warning', title: 'Please agree to the terms!' });
+            return;
+        }
 
+        setLoading(true);
         try {
-            
             const response = await api.post('/register', formData);
-            alert(response.data.message || "Registration successful!");
+            Toast.fire({ icon: 'success', title: response.data.message || "Registration successful!" });
             navigate('/login');
         } catch (error: any) {
-            alert(error.response?.data?.error || "Registration failed!");
+            Toast.fire({ icon: 'error', title: error.response?.data?.error || "Registration failed!" });
         } finally {
             setLoading(false);
         }
@@ -38,7 +60,6 @@ export default function Register() {
                         </div>
 
                         <form onSubmit={handleRegister}>
-                            {/* Full Name */}
                             <div className="mb-3 border rounded p-2 bg-light bg-opacity-25">
                                 <label className="text-muted d-block small mb-0" style={{ fontSize: '11px', fontWeight: '500' }}>Full Name</label>
                                 <input type="text" className="form-control border-0 p-0 bg-transparent shadow-none fs-6 text-dark" 
@@ -46,7 +67,6 @@ export default function Register() {
                                     onChange={(e) => setFormData({...formData, name: e.target.value})} />
                             </div>
 
-                            {/* E-mail */}
                             <div className="mb-3 border rounded p-2 bg-light bg-opacity-25">
                                 <label className="text-muted d-block small mb-0" style={{ fontSize: '11px', fontWeight: '500' }}>E-mail</label>
                                 <input type="email" className="form-control border-0 p-0 bg-transparent shadow-none fs-6 text-dark" 
@@ -54,12 +74,38 @@ export default function Register() {
                                     onChange={(e) => setFormData({...formData, email: e.target.value})} />
                             </div>
 
-                            {/* Password */}
-                            <div className="mb-3 border rounded p-2 bg-light bg-opacity-25">
-                                <label className="text-muted d-block small mb-0" style={{ fontSize: '11px', fontWeight: '500' }}>Password</label>
-                                <input type="password" className="form-control border-0 p-0 bg-transparent shadow-none fs-6 text-dark" 
-                                    placeholder="••••••••" required value={formData.password} 
-                                    onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                            {/* Password Field */}
+                            <div className="mb-3 border rounded p-2 bg-light bg-opacity-25 d-flex align-items-center">
+                                <div className="flex-grow-1">
+                                    <label className="text-muted d-block small mb-0" style={{ fontSize: '11px', fontWeight: '500' }}>Password</label>
+                                    <input type={showPassword ? "text" : "password"} className="form-control border-0 p-0 bg-transparent shadow-none fs-6 text-dark" 
+                                        placeholder="••••••••" required value={formData.password} 
+                                        onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                                </div>
+                                <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'} cursor-pointer text-muted`} 
+                                   onClick={() => setShowPassword(!showPassword)} style={{cursor: 'pointer'}}></i>
+                            </div>
+
+                            {/* Confirm Password Field */}
+                            <div className="mb-3 border rounded p-2 bg-light bg-opacity-25 d-flex align-items-center">
+                                <div className="flex-grow-1">
+                                    <label className="text-muted d-block small mb-0" style={{ fontSize: '11px', fontWeight: '500' }}>Confirm Password</label>
+                                    <input type={showConfirmPassword ? "text" : "password"} className="form-control border-0 p-0 bg-transparent shadow-none fs-6 text-dark" 
+                                        placeholder="••••••••" required value={formData.password_confirmation} 
+                                        onChange={(e) => setFormData({...formData, password_confirmation: e.target.value})} />
+                                </div>
+                                <i className={`bi ${showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'} cursor-pointer text-muted`} 
+                                   onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{cursor: 'pointer'}}></i>
+                            </div>
+
+                            {/* Terms and Conditions Checkbox */}
+                            <div className="mb-3 form-check">
+                                <input type="checkbox" className="form-check-input" id="terms" 
+                                    checked={formData.terms} 
+                                    onChange={(e) => setFormData({...formData, terms: e.target.checked})} />
+                                <label className="form-check-label text-muted small" htmlFor="terms">
+                                    I agree to the terms and conditions
+                                </label>
                             </div>
 
                             <button type="submit" className="btn btn-primary w-100 fw-semibold py-2 rounded" disabled={loading}>

@@ -1,50 +1,51 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../../../src/config/axios";
 import * as bootstrap from "bootstrap";
+import Swal from "sweetalert2";
+
+const Toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+});
 
 interface User {
   id: number;
   name: string;
-  title: string;
   email: string;
   status: string;
-  last_seen: string;
+  last_login_time: string;
 }
 
 export default function ManageUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
 
-  // data freshing function
-  const fetchUsers = async () => {
+  // Pagination: 10 items per page
+  const fetchUsers = async (page: number = 1, searchQuery: string = "") => {
     setLoading(true);
     try {
-      const res = await api.get("/users");
-      // laraveel response structure handle 
-      const userData = res.data.users || res.data;
-
-      const formattedUsers = userData.map((user: any) => ({
-        ...user,
-        last_seen: user.last_login_time || "N/A",
-      }));
-      setUsers(formattedUsers);
+      const res = await api.get(`/users?page=${page}&limit=10&search=${searchQuery}`);
+      const data = res.data.users || res.data;
+      setUsers(data.data || data);
+      setCurrentPage(data.current_page || 1);
+      setLastPage(data.last_page || 1);
     } catch (err: any) {
-      console.error("API Error:", err.response?.status, err.message);
-      if (err.response?.status === 401) {
-        alert("Session expired! Please login again.");
-        window.location.href = "/login"; 
-      }
+      if (err.response?.status === 401) navigate("/login");
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-  //tooltip এর জন্য useEffect
+ 
+  // Tooltip Initializer:
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll(
       '[data-bs-toggle="tooltip"]',
@@ -53,196 +54,199 @@ export default function ManageUsers() {
       (el) => new bootstrap.Tooltip(el),
     );
     return () => tooltipList.forEach((t) => t.dispose());
-  }, [users, selectedIds]);
-  // Bulk Action Handler
-  const handleBulkAction = async (action: string) => {
-    if (selectedIds.length === 0) return;
+  }, [users]);
 
+  const handleBulkAction = async (action: string) => {
+    if (action !== "delete_unverified" && selectedIds.length === 0) return;
     try {
       await api.post("/users/bulk-action", { ids: selectedIds, action });
+      Toast.fire({ icon: "success", title: `Action '${action}' done.` });
       setSelectedIds([]);
-      fetchUsers(); // server new data collection (Requirement #5)
+      fetchUsers(currentPage);
     } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.message || "Something went wrong";
-      alert(`Action failed: ${errorMessage}`);
+      Toast.fire({ icon: "error", title: "Action failed!" });
     }
   };
 
-  const toggleSelect = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
-    );
+  // Logout Handler
+  const handleLogout = async () => {
+    try {
+      // logout api
+      await api.post("/logout");
+
+      // success toast
+      Toast.fire({
+        icon: "success",
+        title: "Logged out successfully!",
+      });
+    } catch (error) {
+      console.error("Logout failed", error);
+      //
+      Toast.fire({
+        icon: "error",
+        title: "Logout failed, redirecting...",
+      });
+    } finally {
+      // token remove localStorage থ
+      localStorage.removeItem("token");
+
+      // navigate login page 
+      navigate("/login");
+    }
   };
 
-  const toggleSelectAll = () => {
-    setSelectedIds(
-      selectedIds.length === users.length ? [] : users.map((u) => u.id),
-    );
-  };
+  useEffect(() => {
+    fetchUsers(currentPage, search);
+  }, [currentPage, search]);
 
   return (
     <div className="container-fluid mt-4 px-3">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h3 className="fw-bold h5">User Management</h3>
-        <Link to="/login" className="btn btn-sm btn-outline-danger">
+      <div className="d-flex justify-content-between mb-4">
+        <h3>User Management</h3>
+        <button
+          className="btn btn-sm btn-outline-danger"
+          onClick={handleLogout}
+        >
           Logout
-        </Link>
+        </button>
       </div>
 
-      <div className="card border shadow-sm">
-        {/* Toolbar Section */}
-        <div className="card-header bg-white p-3 d-flex flex-wrap gap-2 align-items-center">
-          <div className="btn-group">
-            {/* Block Button */}
-            <span
-              data-bs-toggle="tooltip"
-              data-bs-placement="top"
-              data-bs-title="Block Selected Users"
-            >
-              <button
-                className="btn btn-sm btn-outline-primary"
-                onClick={() => handleBulkAction("block")}
-                disabled={selectedIds.length === 0}
-              >
-                <i className="bi bi-lock-fill"></i>
-              </button>
-            </span>
+      <div className="card shadow-sm">
+        <div className="card-header bg-white p-3 d-flex gap-2 align-items-center flex-wrap">
+  {/* button group */}
+  <div className="d-flex gap-2 flex-grow-1">
+    <span data-bs-toggle="tooltip" data-bs-title="Block Selected">
+      <button
+        className="btn btn-sm btn-outline-primary"
+        onClick={() => handleBulkAction("block")}
+        disabled={selectedIds.length === 0}
+      >
+        <i className="bi bi-lock-fill"></i> Block
+      </button>
+    </span>
+    <span data-bs-toggle="tooltip" data-bs-title="Unblock Selected">
+      <button
+        className="btn btn-sm btn-outline-secondary"
+        onClick={() => handleBulkAction("unblock")}
+        disabled={selectedIds.length === 0}
+      >
+        <i className="bi bi-unlock-fill"></i>
+      </button>
+    </span>
+    <span data-bs-toggle="tooltip" data-bs-title="Delete Selected">
+      <button
+        className="btn btn-sm btn-outline-danger"
+        onClick={() => handleBulkAction("delete")}
+        disabled={selectedIds.length === 0}
+      >
+        <i className="bi bi-trash-fill"></i>
+      </button>
+    </span>
+    <span data-bs-toggle="tooltip" data-bs-title="Delete Unverified">
+      <button
+        className="btn btn-sm btn-outline-warning"
+        onClick={() => handleBulkAction("delete_unverified")}
+      >
+        <i className="bi bi-person-x-fill"></i>
+      </button>
+    </span>
+  </div>
 
-            {/* Unblock Button */}
-            <span
-              data-bs-toggle="tooltip"
-              data-bs-placement="top"
-              data-bs-title="Unblock Selected Users"
-            >
-              <button
-                className="btn btn-sm btn-outline-secondary"
-                onClick={() => handleBulkAction("unblock")}
-                disabled={selectedIds.length === 0}
-              >
-                <i className="bi bi-unlock-fill"></i>
-              </button>
-            </span>
+  {/* search box */}
+  <div style={{ width: '200px' }}>
+    <input
+      type="text"
+      className="form-control form-control-sm"
+      placeholder="Search users..."
+      value={search} 
+      onChange={(e) => setSearch(e.target.value)}
+    />
+  </div>
+</div>
 
-            {/* Delete Button */}
-            <span
-              data-bs-toggle="tooltip"
-              data-bs-placement="top"
-              data-bs-title="Delete Selected Users"
-            >
-              <button
-                className="btn btn-sm btn-outline-danger"
-                onClick={() => handleBulkAction("delete")}
-                disabled={selectedIds.length === 0}
-              >
-                <i className="bi bi-trash-fill"></i>
-              </button>
-            </span>
-
-            {/* Delete Unverified Button */}
-            <span
-              data-bs-toggle="tooltip"
-              data-bs-placement="top"
-              data-bs-title="Remove Unverified Users"
-            >
-              <button
-                className="btn btn-sm btn-outline-warning"
-                onClick={() => handleBulkAction("delete_unverified")}
-                disabled={selectedIds.length === 0}
-              >
-                <i className="bi bi-person-x-fill"></i>
-              </button>
-            </span>
-          </div>
-
-          {/* Filter (Right Aligned) */}
-          <input
-            type="text"
-            className="form-control form-control-sm ms-auto"
-            style={{ maxWidth: "180px" }}
-            placeholder="Search users..."
-            onChange={(e) => {
-              /* search logic to add */
-            }}
-          />
-        </div>
-
-        {/* Table Section */}
-        <div
-          className="table-responsive"
-          style={{ maxHeight: "500px", overflowY: "auto" }}
-        >
-          <table className="table table-hover mb-0 align-middle">
-            <thead className="table-light sticky-top">
+        {/* responsive table */}
+        <div className="table-responsive">
+          <table className="table table-hover mb-0">
+            <thead className="table-light">
               <tr>
-                <th style={{ width: "40px" }} className="px-3">
+                <th className="px-3" style={{ width: "40px" }}>
                   <input
                     type="checkbox"
                     className="form-check-input"
-                    onChange={toggleSelectAll}
-                    // select all checkbox logic
-                    checked={
-                      users.length > 0 && selectedIds.length === users.length
+                    onChange={(e) =>
+                      setSelectedIds(
+                        e.target.checked ? users.map((u) => u.id) : [],
+                      )
                     }
-                    disabled={users.length === 0}
                   />
                 </th>
-                <th>Name</th>
-                <th>Email</th>
+                <th style={{ minWidth: "120px" }}>Name</th>
+                <th style={{ minWidth: "150px" }}>Email</th>
                 <th>Status</th>
-                <th>Last Seen</th>
+                <th style={{ minWidth: "150px" }}>Last Login</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-4">
-                    Loading users...
-                  </td>
-                </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-4">
-                    No users found.
+                  <td colSpan={5} className="text-center">
+                    Loading...
                   </td>
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className={
-                      selectedIds.includes(user.id) ? "table-primary" : ""
-                    }
-                  >
+                  <tr key={user.id}>
                     <td className="px-3">
                       <input
                         type="checkbox"
                         className="form-check-input"
                         checked={selectedIds.includes(user.id)}
-                        onChange={() => toggleSelect(user.id)}
+                        onChange={() =>
+                          setSelectedIds((prev) =>
+                            prev.includes(user.id)
+                              ? prev.filter((i) => i !== user.id)
+                              : [...prev, user.id],
+                          )
+                        }
                       />
                     </td>
-                    <td>
-                      <div className="fw-bold">{user.name}</div>
-                      <small className="text-muted">
-                        {user.title || "N/A"}
-                      </small>
-                    </td>
+                    <td>{user.name}</td>
                     <td>{user.email}</td>
                     <td>
-                      {/* Status Badge */}
                       <span
                         className={`badge ${user.status === "active" ? "bg-success" : "bg-warning"}`}
                       >
                         {user.status}
                       </span>
                     </td>
-                    <td>{user.last_seen}</td>
+                    <td>{user.last_login_time}</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="card-footer bg-white d-flex justify-content-between align-items-center">
+          <small>
+            Page {currentPage} of {lastPage}
+          </small>
+          <div className="btn-group">
+            <button
+              className="btn btn-sm btn-outline-secondary"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              Prev
+            </button>
+            <button
+              className="btn btn-sm btn-outline-secondary"
+              disabled={currentPage === lastPage}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>
