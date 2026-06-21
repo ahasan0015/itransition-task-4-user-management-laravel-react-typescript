@@ -59,6 +59,14 @@ class AuthController extends Controller
     }
     return "Invalid token!";
 }
+  /**
+     * IMPORTANT: Generates a unique token.
+     * NOTE: Required by Task #5 requirement.
+     */
+    private function getUniqIdValue()
+    {
+        return bin2hex(random_bytes(16));
+    }
 
 /**
      * Login User
@@ -91,15 +99,7 @@ class AuthController extends Controller
     }
 
 
-    /**
-     * IMPORTANT: Generates a unique token.
-     * NOTE: Required by Task #5 requirement.
-     */
-    private function getUniqIdValue()
-    {
-        return bin2hex(random_bytes(16));
-    }
-
+  
         /**
  * Logout User
  */

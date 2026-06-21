@@ -13,8 +13,6 @@ use App\Mail\UserVerificationMail;
 class UserController extends Controller
 {
     
-        //verification method
-   
     
 
     /**
