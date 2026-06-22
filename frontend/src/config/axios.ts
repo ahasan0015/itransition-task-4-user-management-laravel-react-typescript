@@ -3,9 +3,11 @@ import axios from "axios";
 const api = axios.create({
   //for local development
   // baseURL: "http://localhost:8000/api",
-  
+
   //for production
-  baseURL: "https://lcm.ahasanhabibroxy.online/api",
+  baseURL: "https://final.ahasanhabibroxy.online/api",
+  withCredentials: true,
+  
   headers: {
     "Accept": "application/json",
     "Content-Type": "application/json",
