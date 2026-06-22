@@ -15,7 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'check.status' => \App\Http\Middleware\CheckUserStatus::class,
         ]);
+
+        
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
+    

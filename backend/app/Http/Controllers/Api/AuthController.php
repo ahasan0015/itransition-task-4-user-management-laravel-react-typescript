@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Mail\UserVerificationMail;
 use App\Models\User;
-use Illuminate\Database\QueryException;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
@@ -16,39 +18,44 @@ class AuthController extends Controller
      * IMPORTANT: Handle user registration.
      * NOTE: Email uniqueness is guaranteed by the database UNIQUE INDEX.
      */
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|email',
-            'password' => 'required|string|confirmed',
-            'terms' => 'accepted',
+public function register(Request $request)
+{
+    //validation
+    $validator = Validator::make($request->all(), [
+        'name' => 'required|string',
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|string|confirmed',
+        'terms' => 'accepted', 
+    ]);
+
+    if ($validator->fails()) {
+        // error response
+        return response()->json(['error' => $validator->errors()->first()], 422);
+    }
+
+    try {
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'status' => 'unverified',
+            'verification_token' => $this->getUniqIdValue()
         ]);
 
+        //email send
         try {
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'status' => 'unverified',
-                'verification_token' => $this->getUniqIdValue()
-            ]);
-
-            // Asynchronously send verification email
-            Mail::to($user->email)->queue(new UserVerificationMail($user));
-
-            return response()->json(['message' => 'Registration successful!'], 201);
-            
-        } catch (QueryException $e) {
-            // NOTA BENE: 23000 is the SQLSTATE for integrity constraint violation.
-            // 1062 is the specific error code for Duplicate Entry in MySQL.
-            if ($e->getCode() == '23000' || (isset($e->errorInfo[1]) && $e->errorInfo[1] == 1062)) {
-                return response()->json(['error' => 'Email already exists!'], 400);
-            }
-            
-            return response()->json(['error' => 'Database error.'], 500);
+            Mail::to($user->email)->send(new UserVerificationMail($user));
+        } catch (\Exception $e) {
+            Log::error('Mail Error: ' . $e->getMessage());
         }
+
+        return response()->json(['message' => 'Registration successful!'], 201);
+            
+    } catch (\Exception $e) {
+        Log::error('Registration Error: ' . $e->getMessage());
+        return response()->json(['error' => 'Registration failed due to server error.'], 500);
     }
+}
 //token verification method
      public function verify($token)
     {
