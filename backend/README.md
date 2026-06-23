@@ -40,11 +40,19 @@ A full-stack User Management System built using Laravel (backend), React with Ty
 - No animations or unnecessary UI effects
 - Clean and professional UI required
 
-## ▶️ Setup Instructions
+## ▶️ Setup Instructions for bcakend
 
-### Backend (Laravel)
-```bash
 cd backend
 composer install
+cp .env.example .env
+# Configure your DB_DATABASE, DB_USERNAME, and DB_PASSWORD in .env
+php artisan key:generate
 php artisan migrate
 php artisan serve
+
+## ▶️ Setup Instructions for frontend
+cd ../frontend
+npm install
+# Create a .env file and add your backend API URL
+echo "VITE_API_BASE_URL=http://localhost:8000/api" > .env
+npm run dev
