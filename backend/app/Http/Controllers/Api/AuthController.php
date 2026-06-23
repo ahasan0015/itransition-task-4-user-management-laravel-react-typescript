@@ -20,17 +20,24 @@ class AuthController extends Controller
      */
 public function register(Request $request)
 {
-    //validation
+    // 1. Validation
     $validator = Validator::make($request->all(), [
-        'name' => 'required|string',
+        'name' => 'required|string|max:255',
         'email' => 'required|email|unique:users,email',
-        'password' => 'required|string|confirmed',
         'terms' => 'accepted', 
+    ], [
+        // Custom error messages (these will be displayed on the frontend)
+        'email.unique' => 'This email has already been used, please use another email.',
+        'terms.accepted' => 'You must agree to the terms and conditions.',
     ]);
 
+    // 2. If validation fails
     if ($validator->fails()) {
-        // error response
-        return response()->json(['error' => $validator->errors()->first()], 422);
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Validation error', 
+            'errors' => $validator->errors() // all errors are being sent here
+        ], 422);
     }
 
     try {
@@ -42,18 +49,18 @@ public function register(Request $request)
             'verification_token' => $this->getUniqIdValue()
         ]);
 
-        //email send
+        // 3. Send email
         try {
             Mail::to($user->email)->send(new UserVerificationMail($user));
         } catch (\Exception $e) {
             Log::error('Mail Error: ' . $e->getMessage());
         }
 
-        return response()->json(['message' => 'Registration successful!'], 201);
+        return response()->json(['message' => 'Registration completed successfully! Please check your email.'], 201);
             
     } catch (\Exception $e) {
         Log::error('Registration Error: ' . $e->getMessage());
-        return response()->json(['error' => 'Registration failed due to server error.'], 500);
+        return response()->json(['message' => 'Server error occurred, please try again later.'], 500);
     }
 }
 //token verification method
