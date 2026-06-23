@@ -2,10 +2,10 @@ import axios from "axios";
 
 const api = axios.create({
   //for local development
-  // baseURL: "http://localhost:8000/api",
+  baseURL: "http://localhost:8000/api",
 
   //for production
-  baseURL: "https://final.ahasanhabibroxy.online/api",
+  // baseURL: "https://final.ahasanhabibroxy.online/api",
   withCredentials: true,
   
   headers: {
